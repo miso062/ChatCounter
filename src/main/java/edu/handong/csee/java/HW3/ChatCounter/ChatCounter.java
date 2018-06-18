@@ -3,6 +3,13 @@ package edu.handong.csee.java.HW3.ChatCounter;
 import java.util.*;
 import edu.handong.csee.java.HW3.ChatCounter.*;
 
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+
 /**
  * Read the message file and export the counter file.
  * Execute main method!
@@ -14,36 +21,46 @@ public class ChatCounter {
 	
 	private HashMap<String, ArrayList<NDMData>> messages = new HashMap<String, ArrayList<NDMData>>();
 	private HashMap<String, Integer> count = new HashMap<String, Integer>();
-	private ArrayList<String> name = new ArrayList<String>();	
+	private ArrayList<String> name = new ArrayList<String>();
+	
+	private String inputPath;
+	private String outputPath;
+	private boolean help;
 
 	/**
-	 * Set argument[1] to inputPath and argument[3] to outputPath
-	 * Execute run!
+	 * main method
+	 * Execute run method !
 	 * 
 	 * @param args
 	 */
 	public static void main(String[] args) {
 		
 		ChatCounter main = new ChatCounter();
-		String inputPath = args[1];
-		String outputPath = args[3];
-		
-		main.run(inputPath, outputPath);
+		main.run(args);
 	}
 	
 	/**
-	 * Method to arrange objects according to the required operation so that the action can be performed.
+	 * Method to arrange objects according to the required operation,
+	 * so that the action can be performed.
 	 * 
-	 * @param inputPath - indicates path to file location.
-	 * @param outputPath - indicates location where should the file be stored
+	 * @param args
 	 */
-	public void run(String inputPath, String outputPath) {
+	public void run(String[] args) {
 
+		Options options = createOptions();
+		
+		if(parseOptions(options, args)) {
+			if(help) {
+				printHelp(options);
+				return;
+			}
+		}
+		
 		FileLoader fileLoader = new FileLoader(inputPath);
 		RedundancyChecker checker = new RedundancyChecker();
 		CounterMessages counter = new CounterMessages();
-		FileWriter fileWriter = new FileWriter(outputPath);
 		MessageSort messageSort = new MessageSort();
+		FileWriter fileWriter = new FileWriter(outputPath);
 		
 		//load file
 		
@@ -61,9 +78,45 @@ public class ChatCounter {
 		
 		count = counter.counter(messages, name);
 		count = messageSort.sortCounter(count);
-		//messageSort.printSortedCount();
+		messageSort.printSortedCount();
 		
-		fileWriter.wirteCSVFile(count);
+		//fileWriter.wirteCSVFile(count);
+	}
+	
+	private boolean parseOptions(Options options, String[] args) {
+		CommandLineParser parser = new DefaultParser();
+		
+		try {
+			CommandLine cmd = parser.parse(options, args);
+			
+			inputPath = cmd.getOptionValue("i");
+			outputPath = cmd.getOptionValue("o");
+			help = cmd.hasOption("h");
+			
+		}catch (Exception e) {
+			printHelp(options);
+			return false;
+		}
+		
+		return true;
+	}
+	
+	private Options createOptions() {
+		Options options = new Options();
+		
+		options.addOption(Option.builder("i").longOpt(inputPath).hasArg().required().build());
+		options.addOption(Option.builder("o").longOpt(outputPath).hasArg().required().build());
+		options.addOption(Option.builder("h").longOpt("help").build());
+		
+		return options;
+	}
+	
+	private void printHelp(Options options) {
+		HelpFormatter formatter = new HelpFormatter();
+		String header = "";
+		String footer = "";
+		
+		formatter.printHelp("ChatCounter", header, options, footer, true);
 	}
 }
 
